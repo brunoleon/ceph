@@ -1675,6 +1675,7 @@ class Validation(DeepSea):
         self._apply_config_default("ceph_version_sanity", None)
         self._apply_config_default("rados_striper", None)
         self._apply_config_default("systemd_units_active", None)
+        self._apply_config_default("ceph_volume_lvmcache", None)
 
     def _apply_config_default(self, validation_test, default_config):
         """
@@ -1687,6 +1688,15 @@ class Validation(DeepSea):
             self.master_remote,
             'ceph_version_sanity.sh',
             )
+
+    def ceph_volume_lvmcache(self, **kwargs):
+        if self.nodes_storage:
+            hostname = self.nodes_storage[0]
+            remote = self.remotes[hostname]
+            remote.sh('ceph-volume lvmcache info')
+        else:
+            raise ConfigError(self.err_prefix +
+                              "ceph_volume_lvmcache needs a storage node, but there is none (?)")
 
     def ganesha_smoke_test(self, **kwargs):
         client_host = self.role_type_present("ganeshaclient")
