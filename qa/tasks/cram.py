@@ -70,7 +70,7 @@ def task(ctx, config):
                     'virtualenv', '--python=python3', '{tdir}/virtualenv'.format(tdir=testdir),
                     run.Raw('&&'),
                     '{tdir}/virtualenv/bin/pip'.format(tdir=testdir),
-                    'install', 'cram==0.7',
+                    'install', 'cram==0.6',
                     ],
                 )
             clone_dir = '{tdir}/clone.{role}'.format(tdir=testdir, role=client)
@@ -135,15 +135,14 @@ def _run_tests(ctx, role):
     log.info('Running tests for %s...', role)
     remote.run(
         args=[
+            run.Raw('source {tdir}/virtualenv/bin/activate'.format(tdir=testdir)),
             run.Raw('CEPH_REF={ref}'.format(ref=ceph_ref)),
             run.Raw('CEPH_ID="{id}"'.format(id=id_)),
-            run.Raw('PYTHON="/usr/bin/python3"'),
             run.Raw('PATH=$PATH:/usr/sbin'),
             'adjust-ulimits',
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
-            '{tdir}/virtualenv/bin/cram'.format(tdir=testdir),
-            '-v', '--',
+            'cram', '-v', '--',
             run.Raw('{tdir}/archive/cram.{role}/*.t'.format(tdir=testdir, role=role)),
             ],
         logger=log.getChild(role),
