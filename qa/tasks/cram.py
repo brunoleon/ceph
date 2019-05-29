@@ -135,7 +135,7 @@ def _run_tests(ctx, role):
     log.info('Running tests for %s...', role)
     remote.run(
         args=[
-            run.Raw('source {tdir}/virtualenv/bin/activate'.format(tdir=testdir)),
+            run.Raw('source {tdir}/virtualenv/bin/activate ; '.format(tdir=testdir)),
             run.Raw('CEPH_REF={ref}'.format(ref=ceph_ref)),
             run.Raw('CEPH_ID="{id}"'.format(id=id_)),
             run.Raw('PATH=$PATH:/usr/sbin'),
