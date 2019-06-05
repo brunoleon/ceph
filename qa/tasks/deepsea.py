@@ -1,6 +1,6 @@
 """
 Task (and subtasks) for automating deployment of Ceph using DeepSea
-DROP_ME
+PLEASE_DELETE_THIS_LINE_AND_DONT_ASK_WHY_ITS_HERE
 
 Linter:
     flake8 --max-line-length=100
