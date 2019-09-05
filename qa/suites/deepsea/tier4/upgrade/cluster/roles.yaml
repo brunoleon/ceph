@@ -1,4 +1,4 @@
 roles:
   - [client.salt_master]
-  - [mon.a, mgr.x, osd.0, mds.0, rgw.0, openattic.0]
-  - [osd.1]
+  - [mon.a, mgr.x, osd.0, mds.0, rgw.0, igw.0, ganesha.0, openattic.0]
+  - [osd.1, client.0]

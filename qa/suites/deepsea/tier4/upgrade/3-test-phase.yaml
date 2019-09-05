@@ -71,3 +71,39 @@ tasks:
                 - 'salt-run status.report 2>/dev/null'
 - deepsea.toolbox:
         wait_for_health_ok:
+- exec:
+        client.salt_master:
+                - 'ceph osd require-osd-release nautilus'
+                - "salt '*' saltutil.sync_all"
+- deepsea.policy:
+        munge_profile:
+                post_upgrade_policy:
+- deepsea.orch:
+        stage: 1
+- deepsea.orch:
+        stage: 2
+- deepsea.toolbox:
+        remove_openattic:
+- exec:
+        client.salt_master:
+                - "salt '*' grains.delkey restart_igw"
+- deepsea.orch:
+        stage: prep
+- deepsea.orch:
+        stage: 1
+- deepsea.orch:
+        stage: 2
+- deepsea.orch:
+        stage: 3
+- deepsea.orch:
+        stage: 4
+- exec:
+        client.salt_master:
+                - 'ceph -s'
+- deepsea.validation:
+        iscsi_smoke_test:
+                --upgrade:
+- deepsea.toolbox:
+        cephfs_sanity_test:
+- deepsea.toolbox:
+        ganesha_sanity_test:
