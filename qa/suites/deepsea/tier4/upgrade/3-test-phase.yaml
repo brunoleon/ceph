@@ -1,4 +1,5 @@
 tasks:
+- print: "Upgrading Salt Master (DeepSea) node from SES5 to SES6"
 - exec:
         client.salt_master:
                 - 'echo "Salt Master node, pre-upgrade"'
@@ -8,17 +9,19 @@ tasks:
         client.salt_master:
 - deepsea.reboot:
         client.salt_master:
-            tries: 90
+            tries: 300
 - deepsea.toolbox:
         post_upgrade_status_checks:
             client.salt_master:
+- print: "Salt Master (DeepSea) node upgraded to SES6"
 - exec:
         client.salt_master:
                 - 'deepsea --version || true'
                 - 'salt-run deepsea.version 2>/dev/null || true'
                 - 'salt-run status.report 2>/dev/null'
+- print: "Upgrading first cluster node (MON+MGR+OSD) from SES5 to SES6"
 - exec:
-        mon.a:
+        osd.0:
                 - 'ceph --version || true'
                 - 'ceph -s || true'
 - deepsea.toolbox:
@@ -28,16 +31,17 @@ tasks:
         osd.0:
                 - 'ceph-volume simple scan --force'
 - deepsea.repository:
-        mon.a:
+        osd.0:
 - deepsea.reboot:
-        mon.a:
-            tries: 90
+        osd.0:
+            tries: 300
 - deepsea.toolbox:
         post_upgrade_status_checks:
-            mon.a:
+            osd.0:
 - exec:
-        mon.a:
+        osd.0:
                 - 'ceph-volume simple activate --all'
+- print: "First cluster node (MON+MGR+OSD) upgraded to SES6"
 - deepsea.toolbox:
         rm_noout:
                 osd.0:
@@ -46,9 +50,7 @@ tasks:
                 - 'salt-run status.report 2>/dev/null'
 - deepsea.toolbox:
         wait_for_health_ok:
-- exec:
-        client.0:
-                - 'sudo rpm -q nfs-client'
+- print: "Upgrading second cluster node (OSD-only) from SES5 to SES6"
 - deepsea.toolbox:
         add_noout:
                 osd.1:
@@ -59,13 +61,11 @@ tasks:
         osd.1:
 - deepsea.reboot:
         osd.1:
-             tries: 90
+             tries: 300
 - deepsea.toolbox:
         post_upgrade_status_checks:
             osd.1:
-- exec:
-        client.0:
-                - 'sudo rpm -q nfs-client'
+- print: "Second cluster node (OSD-only) upgraded to SES6"
 - exec:
         osd.1:
                 - 'ceph-volume simple activate --all'
@@ -75,12 +75,13 @@ tasks:
 - exec:
         client.salt_master:
                 - 'salt-run status.report 2>/dev/null'
+                - "echo 'All nodes should now be running nautilus'"
 - deepsea.toolbox:
         wait_for_health_ok:
 - exec:
         client.salt_master:
                 - 'ceph osd require-osd-release nautilus'
-                - "salt '*' saltutil.sync_all"
+                - "salt '*' saltutil.sync_all 2>/dev/null"
 - deepsea.policy:
         munge_profile:
                 post_upgrade_policy:
@@ -92,9 +93,9 @@ tasks:
         remove_openattic:
 - exec:
         client.salt_master:
-                - "salt '*' grains.delkey restart_igw"
+                - "salt '*' grains.delkey restart_igw 2>/dev/null"
 - deepsea.orch:
-        stage: prep
+        stage: 0
 - deepsea.orch:
         stage: 1
 - deepsea.orch:
