@@ -72,6 +72,7 @@ class InstallDeps(Task):
             self.remote,
             'install-deps-test.sh',
             args=[self.git_repo, self.git_branch],
+            as_root=False,
             )
 
 
