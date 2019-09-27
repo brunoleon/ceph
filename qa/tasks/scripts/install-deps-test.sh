@@ -5,7 +5,7 @@
 #     git branch (e.g. "master")
 #
 
-set -e
+set -ex
 
 echo "install-deps-test.sh: dump contents of /etc/os-release"
 cat /etc/os-release
