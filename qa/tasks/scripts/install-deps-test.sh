@@ -24,7 +24,7 @@ source install-deps.sh
 
 echo "install-deps-test.sh: rpm -qa after"
 RPM_QA_AFTER=$(mktemp)
-rpm -qa | sort | 's/\-[[:digit:]].*$//' | tee $RPM_QA_AFTER
+rpm -qa | sort | sed 's/\-[[:digit:]].*$//' | tee $RPM_QA_AFTER
 
 echo "install-deps-test.sh: diff before after"
 diff --old-line-format="" --unchanged-line-format="" $RPM_QA_BEFORE $RPM_QA_AFTER
