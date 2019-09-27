@@ -5,14 +5,14 @@
 #     git branch (e.g. "master")
 #
 
-set -ex
+set -e
 
 echo "install-deps-test.sh: dump contents of /etc/os-release"
 cat /etc/os-release
 
 echo "install-deps-test.sh: rpm -qa before"
 RPM_QA_BEFORE=$(mktemp)
-rpm -qa | sort | sed 's/\-[[:digit:]].*$//' | tee $RPM_QA_BEFORE
+rpm -qa | sed 's/\-[[:digit:]].*$//' | sort --ignore-case | tee $RPM_QA_BEFORE
 
 GIT_REPO=$1
 GIT_BRANCH=$2
@@ -24,9 +24,10 @@ source install-deps.sh
 
 echo "install-deps-test.sh: rpm -qa after"
 RPM_QA_AFTER=$(mktemp)
-rpm -qa | sort | sed 's/\-[[:digit:]].*$//' | tee $RPM_QA_AFTER
+rpm -qa | sed 's/\-[[:digit:]].*$//' | sort --ignore-case | tee $RPM_QA_AFTER
 
 echo "install-deps-test.sh: diff before after"
 echo "WWWW: DIFF BEGIN"
-diff --old-line-format="" --unchanged-line-format="" $RPM_QA_BEFORE $RPM_QA_AFTER || true
+#diff --old-line-format="" --unchanged-line-format="" $RPM_QA_BEFORE $RPM_QA_AFTER || true
+comm -13 $RPM_QA_BEFORE $RPM_QA_AFTER
 echo "WWWW: DIFF END"
