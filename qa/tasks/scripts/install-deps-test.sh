@@ -27,4 +27,4 @@ RPM_QA_AFTER=$(mktemp)
 rpm -qa | sort | sed 's/\-[[:digit:]].*$//' | tee $RPM_QA_AFTER
 
 echo "install-deps-test.sh: diff before after"
-diff --old-line-format="" --unchanged-line-format="" $RPM_QA_BEFORE $RPM_QA_AFTER
+diff --old-line-format="" --unchanged-line-format="" $RPM_QA_BEFORE $RPM_QA_AFTER || true
