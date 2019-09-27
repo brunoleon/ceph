@@ -1,0 +1,11 @@
+openstack:
+- volumes: # attached to each instance
+    count: 0
+    size: 10 # GB
+roles:
+- [client.0]
+tasks:
+- install:
+    repos_only: true
+    extra_system_packages: [git-core]
+- install_deps:
