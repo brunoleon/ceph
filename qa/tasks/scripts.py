@@ -19,6 +19,10 @@ class Scripts:
             ctx['scripts_copied'] = True
 
     def run(self, remote, script_name, args=[], as_root=True):
+        """
+        Note: args should be as simple as possible, and not contain quotation
+        marks. Sorry that's kinda lame.
+        """
         class_name = type(remote).__name__
         self.log.debug(
             '(scripts) run method was passed a remote object of class {}'
@@ -31,10 +35,10 @@ class Scripts:
         self.log.info('(scripts) running script {} with args {} on {}'
                       .format(script_name, args, remote_spec)
                       )
-        path = 'scripts/' + script_name
-        cmd = 'bash {}'.format(path)
-        if as_root:
-            cmd = "sudo " + cmd
+        cmd = 'scripts/' + script_name
         if args:
-            cmd += ' ' + ' '.join(map(str, args))
+            cmd += ' '.join(map(str, args))
+        cmd = "bash -c '{}'".format(cmd)
+        if as_root:
+            cmd = "sudo {}".format(cmd)
         return remote.sh(cmd, label=script_name)
