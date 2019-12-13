@@ -406,6 +406,7 @@ class DeepSea(Task):
                 )
         deepsea_ctx['repositories'] = self.config.get("repositories", None)
         deepsea_ctx['rgw_ssl'] = self.config.get('rgw_ssl', False)
+        deepsea_ctx['validation_tests_already_run'] = []
         self.__populate_install_method('install')
 
     def __populate_install_method_basic(self, key):
@@ -1374,20 +1375,23 @@ class Policy(DeepSea):
         # FIXME: this should be run only once - check for that and
         # return an error otherwise
         if self.munge_policy:
+            self.log.debug(self.munge_policy)
+            teuthology_role = None
+            deepsea_role = None
             for k, v in self.munge_policy.items():
-                if k == 'remove_storage_only_node':
-                    delete_me = self.first_storage_only_node()
-                    if not delete_me:
+                if k in ['node_add', 'node_rm']:
+                    try:
+                        teuthology_role, deepsea_role = v.items()[0]
+                    except AttributeError:
                         raise ConfigError(
-                            self.err_prefix + "remove_storage_only_node "
-                            "requires a storage-only node, but there is no such"
+                            self.err_prefix + "wrong configuration for {}".format(k)
                             )
-                    raise ConfigError(self.err_prefix + (
-                        "munge_policy is a kludge - get rid of it! "
-                        "This test needs to be reworked - deepsea.py "
-                        "does not currently have a proper way of "
-                        "changing (\"munging\") the policy.cfg file."
-                        ))
+                    remote = get_remote_for_role(self.ctx, teuthology_role)
+                    self.scripts.run(
+                            self.master_remote,
+                            'munge_policy.sh',
+                            args=[proposals_dir+"/policy.cfg", remote.hostname, k, deepsea_role]
+                            )
                 else:
                     raise ConfigError(self.err_prefix + "unrecognized "
                                       "munge_policy directive {}".format(k))
@@ -1864,7 +1868,13 @@ class Validation(DeepSea):
         """
         Use to activate tests that should always be run.
         """
-        self.config[validation_test] = self.config.get(validation_test, default_config)
+        if validation_test in deepsea_ctx["validation_tests_already_run"]:
+            self.log.info(
+                "Default test {} has already been run once: skipping"
+                .format(validation_test)
+                )
+        else:
+            self.config[validation_test] = self.config.get(validation_test, default_config)
 
     def ceph_version_sanity(self, **kwargs):
         self.scripts.run(
@@ -1914,6 +1924,39 @@ class Validation(DeepSea):
                 remote,
                 'iscsi_smoke_test.sh',
                 )
+
+    def nodes_in_cluster(self, **kwargs):
+        """
+        Use to assert that actual nodes with corresponding role is equal to the expected
+
+        tasks:
+            - deepsea.validation:
+                nodes_in_cluster:
+                    storage: 2
+        """
+        if kwargs:
+            self.log.info("nodes_in_cluster: Considering config dict ->{}<-".format(kwargs))
+            config_keys = len(kwargs)
+            if config_keys > 1:
+                raise ConfigError(
+                    self.err_prefix +
+                    "nodes_in_cluster config dictionary may contain only one key. "
+                    "You provided ->{}<- keys ({})".format(len(config_keys), config_keys)
+                    )
+            deepsea_role, expected_count = kwargs.items()[0]
+            # TODO: extend with other roles
+            if deepsea_role == 'storage':
+                self.master_remote.sh('sudo ceph osd tree')
+                osds_cnt = ("sudo ceph osd tree -f json-pretty | "
+                            "jq '[.nodes[] | select(.type == \"host\")] | length '"
+                            )
+                output = self.master_remote.sh(osds_cnt)
+                assert expected_count == int(output)
+            else:
+                raise ConfigError(
+                    self.err_prefix +
+                    "nodes_in_cluster does not support deepsea_role {}".format(deepsea_role)
+                    )
 
     def rados_striper(self, **kwargs):
         """
@@ -1981,6 +2024,26 @@ class Validation(DeepSea):
                     )
             idx += 1
 
+    def osd_count_check(self):
+        """
+        Function that checks the number of OSDs. First time it's called it saves
+        the osd count in 'deepsea_ctx' and the second time it checks if the current 
+        count is the  same.
+        """
+        if 'osds' in deepsea_ctx:
+            osds = self.master_remote.sh('sudo ceph osd tree | grep osd | wc -l')
+            if osds == deepsea_ctx['osds']:
+                self.log.debug("Status OK! The number of OSDs before and after"
+                               "purge is the same")
+            else:
+                raise ValueError("Number of OSDs before cluster purge ({}) is not "
+                                 "the same with  the one after ({})."
+                                 .format(deepsea_ctx['osds'], osds))
+        else:
+            deepsea_ctx['osds'] = self.master_remote.sh('sudo ceph osd tree'
+                                                        '| grep osd | wc -l')
+
+
     def begin(self):
         self.log.debug("Processing tests: ->{}<-".format(self.config.keys()))
         for method_spec, kwargs in self.config.items():
@@ -1994,6 +2057,7 @@ class Validation(DeepSea):
             method = getattr(self, method_spec, None)
             if method:
                 method(**kwargs)
+                deepsea_ctx['validation_tests_already_run'].append(method_spec)
             else:
                 raise ConfigError(self.err_prefix + "No such method ->{}<-"
                                   .format(method_spec))
