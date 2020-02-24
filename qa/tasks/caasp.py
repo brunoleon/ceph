@@ -39,48 +39,40 @@ class Caasp(Task):
         self.log = log
         self.remotes = self.cluster.remotes
         self.mgmt_remote = get_remote_for_role(self.ctx, "skuba_mgmt_host.0")
-        self.ssh_priv = 'tempkey.rsa'
-        self.ssh_pub = 'tempkey.rsa.pub'
+        self.ssh_priv = 'caasp_key.rsa'
+        self.ssh_pub = 'caasp_key.rsa.pub'
         self.set_agent = "eval `ssh-agent` && ssh-add ~/.ssh/%s && " % self.ssh_priv
 
     def __ssh_setup(self):
+        """ Generate keys on management node. Copy pub to all of them. """
         log.debug("Executing SSH setup")
         self.__ssh_gen_key()
-        self.__ssh_copy_priv()
+#        self.__ssh_copy_priv()
         self.__ssh_copy_pub_to_caasp()
 
-    def __ssh_gen_key(self):
-        if os.path.isfile(self.ssh_priv):
-            os.remove(self.ssh_priv)
-        if os.path.isfile(self.ssh_pub):
-            os.remove(self.ssh_pub)
-        os.system('ssh-keygen -t rsa -b 2048 -P "" -f %s' % self.ssh_priv)
-#            subprocess.check_output(['ssh-keygen', '-t', 'rsa', '-b', '2048', '-f', self.ssh_priv])
-#            res = subprocess.check_output(["ls"])
-#            log.debug(res)
-#        except subprocess.CalledProcessError as e:
-#            log.debug('error generating key')
-#            log.debug(e.output)
+    #def copy_file(from_remote, from_path, to_remote, to_path=None):
 
-    def __ssh_copy_priv(self):
-        log.debug("Executing __ssh_copy_priv")
-        try:
-            subprocess.check_output(['scp', self.ssh_priv, '%s:.ssh/' %
-                                     self.mgmt_remote])
-        except subprocess.CalledProcessError as e:
-            log.exception("Failed to copy private key to remote %s" % self.mgmt_remote)
-            log.debug(e.output)
+    def __ssh_gen_key(self):
+        self.mgmt_remote.run(args=[
+            'ssh-keygen',
+            '-t',
+            'rsa',
+            '-b',
+            '2048',
+            '-P',
+            '""',
+            '-f',
+            '{}'.format(self.ssh_priv),
+        ])
 
     def __ssh_copy_pub(self, remote):
         log.debug("Executing __ssh_copy_pub to %s" % remote.hostname)
-        cmd = "ssh-copy-id -i %s %s" % (self.ssh_pub, remote)
-        log.debug(cmd)
-        os.system(cmd)
- #        try:
- #            subprocess.check_output(
- #                ['ssh-copy-id', '-i', self.ssh_pub, '%s' % remote])
- #        except subprocess.CalledProcessError as e:
- #            log.debug(e.output)
+        self.mgmt_remote.run(args=[
+            'ssh-copy-id',
+            '-i',
+            '{}'.format(self.ssh_pub),
+            '{}'.format(remote),
+        ])
 
     def __ssh_copy_pub_to_caasp(self):
         for i in range(sum(1 for x in all_roles_of_type(
