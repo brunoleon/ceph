@@ -69,6 +69,8 @@ class Caasp(Task):
         log.debug("Executing __ssh_copy_pub to %s" % remote.hostname)
         self.mgmt_remote.run(args=[
             'ssh-copy-id',
+            '-o',
+            'StrictHostKeyChecking=no',
             '-i',
             '{}'.format(self.ssh_pub),
             '{}'.format(remote),
