@@ -15,7 +15,9 @@ from teuthology.misc import (
     sudo_write_file,
     write_file,
     copy_file,
-    all_roles_of_type
+    all_roles_of_type,
+    append_lines_to_file,
+    get_file
     )
 from teuthology.orchestra import run
 from teuthology.task import Task
@@ -47,7 +49,6 @@ class Caasp(Task):
         """ Generate keys on management node. Copy pub to all of them. """
         log.debug("Executing SSH setup")
         self.__ssh_gen_key()
-#        self.__ssh_copy_priv()
         self.__ssh_copy_pub_to_caasp()
 
     #def copy_file(from_remote, from_path, to_remote, to_path=None):
@@ -65,28 +66,11 @@ class Caasp(Task):
             '{}'.format(self.ssh_priv),
         ])
 
-    def __ssh_copy_pub(self, remote):
-        log.debug("Executing __ssh_copy_pub to %s" % remote.hostname)
-        self.mgmt_remote.run(args=[
-            'ssh-copy-id',
-            '-o',
-            'StrictHostKeyChecking=no',
-            '-i',
-            '{}'.format(self.ssh_pub),
-            '{}'.format(remote),
-        ])
-
     def __ssh_copy_pub_to_caasp(self):
-        for i in range(sum(1 for x in all_roles_of_type(
-                self.ctx.cluster, 'caasp_master'))):
-            remote = get_remote_for_role(
-                self.ctx, "caasp_master." + str(i))
-            self.__ssh_copy_pub(remote)
-        for i in range(sum(1 for x in all_roles_of_type(
-                self.ctx.cluster, 'caasp_worker'))):
-            remote = get_remote_for_role(
-                self.ctx, "caasp_worker." + str(i))
-            self.__ssh_copy_pub(remote)
+        data = get_file(self.mgmt_remote, self.ssh_pub)
+        for i, _ in enumerate(all_roles_of_type(self.ctx.cluster, 'caasp_master')):
+            r = get_remote_for_role(self.ctx, 'caasp_master.' + str(i))
+            append_lines_to_file(r, '.ssh/authorized_keys', data)
 
     def __create_cluster(self):
         master_remote = get_remote_for_role(self.ctx, "caasp_master.0")
