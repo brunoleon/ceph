@@ -43,7 +43,8 @@ class Caasp(Task):
         self.mgmt_remote = get_remote_for_role(self.ctx, "skuba_mgmt_host.0")
         self.ssh_priv = 'caasp_key.rsa'
         self.ssh_pub = 'caasp_key.rsa.pub'
-        self.set_agent = "ssh-agent && ssh-add ~/%s && " % self.ssh_priv
+        self.set_agent = "eval $(ssh-agent) && ssh-add ~/{} && ".format(
+            self.ssh_priv)
 
     def __ssh_setup(self):
         """ Generate keys on management node. Copy pub to all of them. """
