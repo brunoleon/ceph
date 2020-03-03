@@ -62,7 +62,7 @@ class Caasp(Task):
             '-b',
             '2048',
             '-N',
-            '""',
+            '\'\'',
             '-f',
             '{}'.format(self.ssh_priv),
         ])
