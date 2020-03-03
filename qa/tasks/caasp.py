@@ -76,6 +76,8 @@ class Caasp(Task):
 
     def __create_cluster(self):
         master_remote = get_remote_for_role(self.ctx, "caasp_master.0")
+        self.mgmt_remote.sh("echo 'sleeping' && sleep 10000")
+
         commands = [
             "ssh-add -L",
             "skuba cluster init --control-plane {} cluster".format(master_remote.hostname),
