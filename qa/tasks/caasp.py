@@ -4,26 +4,14 @@ Linter:
     flake8 --max-line-length=100
 '''
 import logging
-import os
-import subprocess
-from util import remote_exec
-from teuthology.exceptions import ConfigError
 from teuthology.misc import (
-    delete_file,
-    move_file,
-    sh,
-    sudo_write_file,
-    write_file,
-    copy_file,
     all_roles_of_type,
     append_lines_to_file,
     get_file
     )
-from teuthology.orchestra import run
 from teuthology.task import Task
 from util import (
     get_remote_for_role,
-    remote_exec
     )
 log = logging.getLogger(__name__)
 
@@ -78,9 +66,8 @@ class Caasp(Task):
             append_lines_to_file(r, '.ssh/authorized_keys', data)
 
     def __create_cluster(self):
+        log.debug('Creating cluster')
         master_remote = get_remote_for_role(self.ctx, "caasp_master.0")
-#        self.mgmt_remote.sh("echo 'sleeping' && sleep 10000")
-
         commands = [
             "ssh-add -L",
             "skuba cluster init --control-plane {} cluster".format(master_remote.hostname),
@@ -89,13 +76,13 @@ class Caasp(Task):
         ]
         for command in commands:
             self.mgmt_remote.sh("%s %s" % (self.set_agent, command))
-        for i in range(sum(1 for x in all_roles_of_type(
-                self.ctx.cluster, 'caasp_worker'))):
-            worker_remote = get_remote_for_role(
-                self.ctx, "caasp_worker." + str(i))
-            command = "cd cluster;skuba node join --role worker --user ubuntu --sudo --target {} worker.{}".format(
-                worker_remote.hostname, str(i))
+
+        for i, _ in enumerate(all_roles_of_type(self.ctx.cluster, 'caasp_worker')):
+            r = get_remote_for_role(self.ctx, 'caasp_worker.' + str(i))
+            command = "cd cluster;skuba node join --role worker --user ubuntu \
+                --sudo --target {} worker.{}".format(r.hostname, str(i))
             self.mgmt_remote.sh("%s %s" % (self.set_agent, command))
+        self.mgmt_remote.sh("echo 'sleeping' && sleep 10000")
 
     def begin(self):
         self.__ssh_setup()
