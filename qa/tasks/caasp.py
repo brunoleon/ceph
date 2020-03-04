@@ -73,6 +73,9 @@ class Caasp(Task):
         for i, _ in enumerate(all_roles_of_type(self.ctx.cluster, 'caasp_master')):
             r = get_remote_for_role(self.ctx, 'caasp_master.' + str(i))
             append_lines_to_file(r, '.ssh/authorized_keys', data)
+        for i, _ in enumerate(all_roles_of_type(self.ctx.cluster, 'caasp_worker')):
+            r = get_remote_for_role(self.ctx, 'caasp_worker.' + str(i))
+            append_lines_to_file(r, '.ssh/authorized_keys', data)
 
     def __create_cluster(self):
         master_remote = get_remote_for_role(self.ctx, "caasp_master.0")
