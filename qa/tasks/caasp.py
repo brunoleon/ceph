@@ -40,8 +40,6 @@ class Caasp(Task):
         self.__ssh_gen_key()
         self.__ssh_copy_pub_to_caasp()
 
-    #def copy_file(from_remote, from_path, to_remote, to_path=None):
-
     def __ssh_gen_key(self):
         self.mgmt_remote.run(args=[
             'ssh-keygen',
@@ -82,11 +80,15 @@ class Caasp(Task):
             command = "cd cluster;skuba node join --role worker --user ubuntu \
                 --sudo --target {} worker.{}".format(r.hostname, str(i))
             self.mgmt_remote.sh("%s %s" % (self.set_agent, command))
-        self.mgmt_remote.sh("echo 'sleeping' && sleep 10000")
+
+    def __show_cluster_status(self):
+        command = 'cd cluster && skuba cluster status'
+        self.mgmt_remote.sh("%s %s" % (self.set_agent, command))
 
     def begin(self):
         self.__ssh_setup()
         self.__create_cluster()
+        self.__show_cluster_status()
 
     def end(self):
         pass
